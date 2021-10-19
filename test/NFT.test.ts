@@ -10,7 +10,7 @@ contract('NFT', (accounts => {
     admin = accounts[0], 
     minter = accounts[1], 
     nftName = "CVE NFT", 
-    nftSymbol = "CVE-ERC721",
+    nftSymbol = "CVE",
     metadataHash = '773a5434b13610B593Ac2'
 
     before(async () => {
@@ -106,22 +106,6 @@ contract('NFT', (accounts => {
             const response = nft.mint(admin, "CVE-2021-0000", metadataHash)
             await truffleAssert.reverts(response, "NOT_MARKETPLACE");
         })
-
-        // NOT NEEDED? 
-        // it('transferFrom is restricted to marketplace', async () => {
-
-        //     let response = nft.transferFrom(minter, accounts[2], 0)
-        //     await truffleAssert.reverts(response, "NOT_MARKETPLACE");
-        // })
-
-        // it('safeTransferFrom is restricted to marketplace', async () => {
-
-        //     let response = nft.safeTransferFrom(minter, accounts[2], 0)
-        //     await truffleAssert.reverts(response, "NOT_MARKETPLACE");
-
-        //     response = nft.safeTransferFrom(minter, accounts[2], 0, 0)
-        //     await truffleAssert.reverts(response, "NOT_MARKETPLACE");
-        // })
 
     })
 

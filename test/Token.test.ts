@@ -11,7 +11,7 @@ contract('Token', (accounts => {
     user1 = accounts[1], 
     user2 = accounts[2], 
     tokenName = "CVE Token", 
-    tokenSymbol = "CVE-ERC20"
+    tokenSymbol = "CVE"
 
     before(async () => {
         token = await Token.deployed()
@@ -76,6 +76,12 @@ contract('Token', (accounts => {
             // Check balance of user wallet
             let response = await token.totalSupply()
             assert.equal(response, 1, 'Total supply after mint is 1 token')
+        })
+
+        it('Max supply', async () => {
+
+            // Mint more than max supply should fail
+            await truffleAssert.reverts(token.reward(user1, '1000000000000000000000000', { from: admin }), "MAX_SUPPLY_REACHED");
         })
     })
 

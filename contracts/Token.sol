@@ -7,13 +7,16 @@ contract Token is ERC20 {
 
     address public admin;
     address public marketplace;
+    uint256 constant maxSupply = 1000000000000000000000000; // 1 million
 
-    constructor() ERC20('CVE Token', 'CVE-ERC20') {
+    constructor() ERC20('CVE Token', 'CVE') {
         admin = msg.sender;
     }
 
     /// @notice only marketplace and admin can reward
     function reward(address account, uint256 amount) public {
+        uint total = totalSupply();
+        require((total+amount) < maxSupply, "MAX_SUPPLY_REACHED");
         if(msg.sender == marketplace || msg.sender == admin){
             _mint(account, amount);
             _approve(account, account, balanceOf(account));

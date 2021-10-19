@@ -17,7 +17,7 @@ contract NFT is ERC721 {
     string cve;
   }
 
-  constructor() ERC721('CVE NFT', 'CVE-ERC721') {
+  constructor() ERC721('CVE NFT', 'CVE') {
     admin = msg.sender;
   }
 
@@ -77,36 +77,4 @@ contract NFT is ERC721 {
       require(_exists(tokenId), "NOT_FOUND");
       return string(abi.encodePacked("https://ipfs.io/ipfs/",metadataHashes[tokenId]));
   }
-
-  /// @notice only allow marketplace 
-  // function transferFrom(
-  //     address from,
-  //     address to,
-  //     uint256 tokenId
-  // ) public virtual override {
-  //     require(msg.sender == marketplace, "NOT_MARKETPLACE");
-  //     _transfer(from, to, tokenId);
-  // }
-
-  /// @notice only allow marketplace 
-  // function safeTransferFrom(
-  //     address from,
-  //     address to,
-  //     uint256 tokenId
-  // ) public virtual override {
-  //     require(msg.sender == marketplace, "NOT_MARKETPLACE");
-  //     safeTransferFrom(from, to, tokenId, "");
-  // }
-
-  /// @notice only allow marketplace 
-  // function safeTransferFrom(
-  //     address from,
-  //     address to,
-  //     uint256 tokenId,
-  //     bytes memory _data
-  // ) public virtual override {
-  //     require(msg.sender == marketplace, "NOT_MARKETPLACE");
-  //     _safeTransfer(from, to, tokenId, _data);
-  // }
-  
 }
