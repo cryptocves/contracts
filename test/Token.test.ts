@@ -5,21 +5,21 @@ contract('Token', (accounts => {
     const Token = artifacts.require("Token")
     const Marketplace = artifacts.require("Marketplace")
 
-    let token: any,  
-    marketplace: any, 
-    admin = accounts[0], 
-    user1 = accounts[1], 
-    user2 = accounts[2], 
-    tokenName = "CVE Token", 
-    tokenSymbol = "CVE"
+    let token: any,
+        marketplace: any,
+        admin = accounts[0],
+        user1 = accounts[1],
+        user2 = accounts[2],
+        tokenName = "CVE Token",
+        tokenSymbol = "CVE"
 
     before(async () => {
         token = await Token.deployed()
         marketplace = await Marketplace.deployed()
-        await token.setMarketplace(marketplace.address, { from: admin})
+        await token.setMarketplace(marketplace.address, { from: admin })
     })
 
-    describe('Deployment',  async () => {
+    describe('Deployment', async () => {
 
         it('Token deploys successfully', async () => {
             const address = token.address
@@ -122,7 +122,32 @@ contract('Token', (accounts => {
             response = await token.balanceOf(user2)
             assert.equal(response, 1, 'Balance after mint is 1 token')
         })
-
     })
 
+    describe('Admin', async () => {
+
+        it('setAdmin', async () => {
+
+            // Check that admin is admin
+            let _admin = await token.admin.call()
+            assert.equal(_admin, admin, 'Admin should be same')
+
+            // Set new admin
+            await token.setAdmin(user1, { from: admin })
+
+            // Check that admin is updated
+            _admin = await token.admin.call()
+            assert.equal(_admin, user1, 'Admin should have updated')
+
+            // Restore admin
+            await token.setAdmin(admin, { from: user1 })
+
+            // Check that admin is admin
+            _admin = await token.admin.call()
+            assert.equal(_admin, admin, 'Admin should be same')
+
+            // Only admin can update admin
+            await truffleAssert.reverts(token.setAdmin(user1, { from: user1 }), "ONLY_ADMIN");
+        })
+    })
 }))

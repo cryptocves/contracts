@@ -230,6 +230,12 @@ contract Marketplace is IERC721Receiver {
         transferYield = _transferYield;
     }
 
+    /// @notice admin can set admin
+    function setAdmin(address _admin) external {
+        require(msg.sender == admin, "ONLY_ADMIN");
+        admin = _admin;
+    }
+
     /// @notice Required to return `IERC721Receiver.onERC721Received.selector`.
     function onERC721Received(address operator, address from, uint256 nftId, bytes calldata data) override external returns (bytes4){
         return this.onERC721Received.selector;

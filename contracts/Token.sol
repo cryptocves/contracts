@@ -30,4 +30,10 @@ contract Token is ERC20 {
         require(msg.sender == admin, "ONLY_ADMIN");
         marketplace = _marketplace;
     }
+
+    /// @notice admin can set admin
+  function setAdmin(address _admin) external {
+    require(msg.sender == admin, "ONLY_ADMIN");
+    admin = _admin;
+  }
 }

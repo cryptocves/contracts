@@ -7,26 +7,26 @@ contract('Marketplace', (accounts => {
     const Token = artifacts.require("Token")
     const Marketplace = artifacts.require("Marketplace")
     const web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"))
-    
+
     // Contracts
-    let nft: any, 
-    marketplace: any, 
-    token: any,
+    let nft: any,
+        marketplace: any,
+        token: any,
 
-    // NFT
-    nftId: number,
-    mintingFee: string, 
-    price: string,
-    metadataHash = '773a5434b13610B593Ac2',
+        // NFT
+        nftId: number,
+        mintingFee: string,
+        price: string,
+        metadataHash = '773a5434b13610B593Ac2',
 
-    // Token
-    mintYield: number,
-    transferYield: number,
+        // Token
+        mintYield: number,
+        transferYield: number,
 
-    // Accounts
-    admin = accounts[0],
-    seller = accounts[1], 
-    buyer = accounts[2]
+        // Accounts
+        admin = accounts[0],
+        seller = accounts[1],
+        buyer = accounts[2]
 
     before(async () => {
 
@@ -36,7 +36,7 @@ contract('Marketplace', (accounts => {
         marketplace = await Marketplace.deployed()
     })
 
-    describe('Deployment',  async () => {
+    describe('Deployment', async () => {
 
         it('NFT deploys successfully', async () => {
             const address = nft.address
@@ -63,7 +63,7 @@ contract('Marketplace', (accounts => {
         })
     })
 
-    describe('Marketplace open or closed', async() => {
+    describe('Marketplace open or closed', async () => {
 
         it('Marketplace is open after deployment', async () => {
             const marketplaceIsOpen = await marketplace.marketplaceIsOpen.call()
@@ -71,9 +71,9 @@ contract('Marketplace', (accounts => {
         })
 
         it('Marketplace is closed', async () => {
-           await marketplace.openMarketplace(false, { from: admin })
-           const marketplaceIsOpen = await marketplace.marketplaceIsOpen.call()
-           assert.equal(marketplaceIsOpen, false, 'Marketplace should be closed')
+            await marketplace.openMarketplace(false, { from: admin })
+            const marketplaceIsOpen = await marketplace.marketplaceIsOpen.call()
+            assert.equal(marketplaceIsOpen, false, 'Marketplace should be closed')
         })
 
         it('Marketplace unavailable when closed', async () => {
@@ -81,7 +81,7 @@ contract('Marketplace', (accounts => {
 
             // mintNFT should not be possible when marketplace is closed
             await truffleAssert.reverts(marketplace.mintNFT("", "", { from: admin }), "MARKETPLACE_CLOSED");
-            
+
             // offerNFT should not be possible when marketplace is closed
             await truffleAssert.reverts(marketplace.offerNFT(0, 0, { from: admin }), "MARKETPLACE_CLOSED");
 
@@ -90,16 +90,16 @@ contract('Marketplace', (accounts => {
 
             // Open marketplace again
             await marketplace.openMarketplace(true, { from: admin })
-         })
+        })
     })
 
-    describe('Minting NFT', async() => {
+    describe('Minting NFT', async () => {
         let mintingFee: string
- 
-        before( async() => {
+
+        before(async () => {
             mintingFee = web3.utils.toWei('1', 'ether')
         })
-        
+
         it('Mint yield', async () => {
 
             const newMintYield = '1000000000000000000'
@@ -111,17 +111,17 @@ contract('Marketplace', (accounts => {
         })
 
         it('Mint new NFT as admin', async () => {
-    
+
             // Set minting fee to 0.001 eth
             await marketplace.setMintFee(web3.utils.toWei('0.001', 'ether'), { from: admin })
-    
+
             // Admin should be able to mint for free
-            const response = await marketplace.mintNFT("CVE-2021-0000", metadataHash, { 
+            const response = await marketplace.mintNFT("CVE-2021-0000", metadataHash, {
                 from: admin
             })
             const event = await response.logs[0].args
             const nftToken = await nft.getById(event.nftId)
-    
+
             // NFT should be minted
             assert.equal(response.logs[0].event, 'NftMinted', 'nft is minted')
             assert.equal(event.to, admin, 'to is corrent')
@@ -135,7 +135,7 @@ contract('Marketplace', (accounts => {
         it('Mint new NFT', async () => {
 
             // Mint nft and pay mint fee
-            const result = await marketplace.mintNFT("CVE-2021-0001", metadataHash, { 
+            const result = await marketplace.mintNFT("CVE-2021-0001", metadataHash, {
                 from: seller,
                 value: mintingFee
             })
@@ -160,7 +160,7 @@ contract('Marketplace', (accounts => {
 
             // Mint nft without cve should fail
             await truffleAssert.reverts(marketplace.mintNFT("", "", { from: seller }), "MISSING_CVE");
-            
+
             // Mint nft without metadata hash should fail
             await truffleAssert.reverts(marketplace.mintNFT("CVE-2021-0010", "", { from: seller }), "MISSING_METADATA");
         })
@@ -173,62 +173,97 @@ contract('Marketplace', (accounts => {
 
     })
 
-
-
-
     describe('Minting NFT fee', async () => {
 
-        /// TODO: Improve
         it('Minter balance after mint', async () => {
 
-            // Set 1 eth
-            let mintingFee = web3.utils.toWei('1', 'ether')
+            // Set mint fee to 1 eth
+            const mintingFee = web3.utils.toWei('1', 'ether')
+            const mintingFeeBN = web3.utils.toBN(mintingFee)
             await marketplace.setMintFee(mintingFee, { from: admin })
-            const balanceBeforeMint = await web3.eth.getBalance(seller)
 
-            await marketplace.mintNFT("CVE-2021-0010", metadataHash,{ 
+            // Gas price
+            const gasPrice = await web3.eth.getGasPrice()
+            const gasPriceBN = web3.utils.toBN(gasPrice)
+
+            // Balance before transaction
+            const balanceBeforeMint = await web3.eth.getBalance(seller)
+            const balanceBeforeMintBN = web3.utils.toBN(balanceBeforeMint)
+
+            const tx = await marketplace.mintNFT("CVE-2021-0010", metadataHash, {
                 from: seller,
                 value: mintingFee
             })
-            
+
+            // Transaction fee
+            const gasUsedBN = web3.utils.toBN(tx.receipt.gasUsed)
+            const txFee = gasPriceBN.mul(gasUsedBN)
+            const txFeeBN = web3.utils.toBN(txFee)
+
+            // Balance after transaction
             const balanceAfterMint = await web3.eth.getBalance(seller)
-            const res = (balanceBeforeMint - balanceAfterMint) > parseInt(mintingFee)
-            assert.isBoolean(res, 'Minter balance should have decreased by 1 eth + gas') // For some reason last part of value differs
+            const balanceAfterMintBN = web3.utils.toBN(balanceAfterMint)
+
+            // Tansaction cost
+            const diff = balanceBeforeMintBN.sub(balanceAfterMintBN)
+            const totalCost = txFeeBN.add(mintingFeeBN) // Minting + gas fee
+
+            assert.equal(diff.toString(), totalCost.toString(), 'Balance after mint should be correkt')
         })
 
         it('Payment is less than fee', async () => {
 
             // Set mint fee to 1 eth
             await marketplace.setMintFee(web3.utils.toWei('1', 'ether'), { from: admin })
-            
+
             // Should fail - mint nft and pay less than fee
-            const response = marketplace.mintNFT("CVE-2021-0013", metadataHash, { 
+            const response = marketplace.mintNFT("CVE-2021-0013", metadataHash, {
                 from: seller,
                 value: '10'
             })
-            
+
             await truffleAssert.reverts(response, "PAYMENT_TOO_LOW");
         })
 
         it('Refund payment if more than fee', async () => {
 
-            // Set 1 eth
-            mintingFee = web3.utils.toWei('1', 'ether')
+            // Set mint fee to 1 eth
+            const mintingFee = web3.utils.toWei('1', 'ether')
+            const mintingFeeBN = web3.utils.toBN(mintingFee)
             await marketplace.setMintFee(mintingFee, { from: admin })
-            
-            // Mint nft, pay too much and receive refund
-            const balanceBeforeMint = parseInt(await web3.eth.getBalance(seller))
-            let response = await marketplace.mintNFT("CVE-2020-0012", metadataHash, { 
+
+            // Mint fee actual paid
+            const mintingFeePaid = web3.utils.toWei('5', 'ether') // 4 eth too much
+
+            // Gas price
+            const gasPrice = await web3.eth.getGasPrice()
+            const gasPriceBN = web3.utils.toBN(gasPrice)
+
+            // Balance before transaction
+            const balanceBeforeMint = await web3.eth.getBalance(seller)
+            const balanceBeforeMintBN = web3.utils.toBN(balanceBeforeMint)
+
+            const tx = await marketplace.mintNFT("CVE-2020-0012", metadataHash, {
                 from: seller,
-                value: web3.utils.toWei('5', 'ether') // 4 eth too much
+                value: mintingFeePaid
             })
-            
-            // Calculate paid fee
-            const tx = await web3.eth.getTransaction(response.tx)
+
+            // Transaction fee
+            const gasUsedBN = web3.utils.toBN(tx.receipt.gasUsed)
+            const txFee = gasPriceBN.mul(gasUsedBN)
+            const txFeeBN = web3.utils.toBN(txFee)
+
+            // Balance after transaction
             const balanceAfterMint = await web3.eth.getBalance(seller)
-            const gas = (tx.gasPrice * response.receipt.gasUsed)
-            const expectedBalanceAfterMint = (balanceBeforeMint - parseInt(mintingFee) - gas).toString()
-            assert.equal(balanceAfterMint.substring(0,8), expectedBalanceAfterMint.substring(0,8), 'Minter balance should have decreased by 1 eth') // For some reason last part of value differs
+            const balanceAfterMintBN = web3.utils.toBN(balanceAfterMint)
+
+            // Tansaction cost
+            const diff = balanceBeforeMintBN.sub(balanceAfterMintBN)
+            const totalCost = txFeeBN.add(mintingFeeBN)
+
+            // Total cost should be 1 eth plus gas fee
+            assert.equal(diff.toString(), totalCost.toString(), 'Minter balance should have decreased by 1 eth plus gas')
+
         })
 
         it('Set minting fee', async () => {
@@ -238,7 +273,7 @@ contract('Marketplace', (accounts => {
             await marketplace.setMintFee(mintingFee, { from: admin })
             let fee = await marketplace.mintFee.call()
             assert.equal(fee, mintingFee, 'minting is 1 eth')
-    
+
             // Set 0.001 eth
             mintingFee = web3.utils.toWei('0.001', 'ether')
             await marketplace.setMintFee(mintingFee, { from: admin })
@@ -261,7 +296,7 @@ contract('Marketplace', (accounts => {
             assert.equal(response, 20, 'Marketplace fee has been set')
 
             //Mint NFT as admin without paying fee
-            response = await marketplace.mintNFT("CVE-2021-0011", metadataHash, { 
+            response = await marketplace.mintNFT("CVE-2021-0011", metadataHash, {
                 from: admin
             })
 
@@ -278,15 +313,15 @@ contract('Marketplace', (accounts => {
             await marketplace.setMintFee(mintingFee, { from: admin })
             let mintFee = await marketplace.mintFee.call()
             assert.equal(mintFee, mintingFee, 'minting is 1 eth')
-    
+
             const balanceBeforeMint = await web3.eth.getBalance(admin)
-    
+
             // Mint NFT 
-            await marketplace.mintNFT("CVE-2021-0012", metadataHash, { 
+            await marketplace.mintNFT("CVE-2021-0012", metadataHash, {
                 from: seller,
                 value: mintFee
             })
-            
+
             // Calculate paid fee
             const balanceAfterMint = await web3.eth.getBalance(admin)
             const diff = parseInt(balanceAfterMint) - parseInt(balanceBeforeMint)
@@ -294,22 +329,19 @@ contract('Marketplace', (accounts => {
         })
     })
 
-
-
-
     describe('Offer NFT for sale', async () => {
-        
-        before( async() => {
+
+        before(async () => {
 
             // Set mint fee
             mintingFee = web3.utils.toWei('0.001', 'ether')
             price = web3.utils.toWei('1', 'ether')
 
-             // Set minting fee
+            // Set minting fee
             await marketplace.setMintFee(mintingFee, { from: admin })
 
             // Mint NFT
-            let response = await marketplace.mintNFT("CVE-2021-0021", metadataHash, { 
+            let response = await marketplace.mintNFT("CVE-2021-0021", metadataHash, {
                 from: seller,
                 value: mintingFee
             })
@@ -337,7 +369,7 @@ contract('Marketplace', (accounts => {
             // Approval event
             let response = await nft.approve(marketplace.address, nftId, { from: seller })
             assert.equal(response.logs[0].event, 'Approval', 'Approval event is sent')
-            
+
             // Marketplace should be approved to handle nft
             response = await nft.getApproved(nftId)
             assert.equal(response, marketplace.address, 'Marketplace contract is approved to manage nft')
@@ -379,18 +411,15 @@ contract('Marketplace', (accounts => {
 
     })
 
-
-
-
     describe('Buy NFT', async () => {
-        let buyerBalanceBeforeBuy: string, 
-        sellerBalanceBeforeBuy: string,
-        marketplaceBalanceBeforeBuy: string,
-        adminBalanceBeforeBuy: string,
-        nftPrice: number,
-        nftMarketplacePrice: number
+        let buyerBalanceBeforeBuy: string,
+            sellerBalanceBeforeBuy: string,
+            marketplaceBalanceBeforeBuy: string,
+            adminBalanceBeforeBuy: string,
+            nftPrice: number,
+            nftMarketplacePrice: number
 
-        before( async() => {
+        before(async () => {
 
             // Get balances before buy
             buyerBalanceBeforeBuy = await web3.eth.getBalance(buyer);
@@ -418,27 +447,27 @@ contract('Marketplace', (accounts => {
         it('Transfer NFT from marketplace to buyer', async () => {
 
             // Should fail - no value property given
-            let response = marketplace.buyNFT(nftId, { 
+            let response = marketplace.buyNFT(nftId, {
                 from: buyer
             })
             await truffleAssert.reverts(response, "MISSING_PAYMENT");
 
             // Should fail - value is zero
-            response = marketplace.buyNFT(nftId, { 
+            response = marketplace.buyNFT(nftId, {
                 from: buyer,
                 value: '0'
             })
             await truffleAssert.reverts(response, "MISSING_PAYMENT");
 
             // Should fail - seller try to buy own NFT
-            response = marketplace.buyNFT(nftId, { 
+            response = marketplace.buyNFT(nftId, {
                 from: seller,
                 value: nftMarketplacePrice
             })
             await truffleAssert.reverts(response, "NOT_ALLOWED_BUY_OWN_TOKEN");
 
             // Should fail - payment is too small
-            response = marketplace.buyNFT(nftId, { 
+            response = marketplace.buyNFT(nftId, {
                 from: buyer,
                 value: '100'
             })
@@ -447,7 +476,7 @@ contract('Marketplace', (accounts => {
             const tokenBalanceBefore = await token.balanceOf(seller)
 
             // Should succeed
-            response = await marketplace.buyNFT(nftId, { 
+            response = await marketplace.buyNFT(nftId, {
                 from: buyer,
                 value: nftMarketplacePrice
             })
@@ -466,7 +495,7 @@ contract('Marketplace', (accounts => {
             // Buyer balance after buy should decrease
             const buyerBalanceAfterBuy = await web3.eth.getBalance(buyer)
             assert(parseInt(buyerBalanceBeforeBuy) > parseInt(buyerBalanceAfterBuy), 'Balance should decrease after buy')
-            
+
             // Seller balance after buy should increase
             const sellerBalanceAfterBuy = await web3.eth.getBalance(seller)
             assert(parseInt(sellerBalanceBeforeBuy) < parseInt(sellerBalanceAfterBuy), 'Balance should increase after buy')
@@ -504,16 +533,13 @@ contract('Marketplace', (accounts => {
         it('NFT is not up for sale after buy', async () => {
 
             // Should fail - Try put up NFT for sale again
-            const response = marketplace.buyNFT(nftId, { 
+            const response = marketplace.buyNFT(nftId, {
                 from: buyer,
                 value: await marketplace.getNftPrice(nftId)
             })
             await truffleAssert.reverts(response, "NOT_FOR_SALE");
         })
-    })      
-
-
-
+    })
 
     describe('Withdraw NFT', async () => {
 
@@ -553,6 +579,32 @@ contract('Marketplace', (accounts => {
         })
     })
 
+    describe('Admin', async () => {
+
+        it('setAdmin', async () => {
+
+            // Check that admin is admin
+            let _admin = await marketplace.admin.call()
+            assert.equal(_admin, admin, 'Admin should be same')
+
+            // Set new admin
+            await marketplace.setAdmin(seller, { from: admin })
+
+            // Check that admin is updated
+            _admin = await marketplace.admin.call()
+            assert.equal(_admin, seller, 'Admin should have updated')
+
+            // Restore admin
+            await marketplace.setAdmin(admin, { from: seller })
+
+            // Check that admin is admin
+            _admin = await marketplace.admin.call()
+            assert.equal(_admin, admin, 'Admin should be same')
+
+            // Only admin can update admin
+            await truffleAssert.reverts(marketplace.setAdmin(seller, { from: seller }), "ONLY_ADMIN");
+        })
+    })
 }))
 
 

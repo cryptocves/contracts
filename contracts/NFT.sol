@@ -67,6 +67,12 @@ contract NFT is ERC721 {
     marketplace = _marketplace;
   }
 
+  /// @notice admin can set admin
+  function setAdmin(address _admin) external {
+    require(msg.sender == admin, "ONLY_ADMIN");
+    admin = _admin;
+  }
+
   /// @notice get metadatahash from IPFS url
   function getHash(uint tokenId) external view returns (string memory) {
     return metadataHashes[tokenId];

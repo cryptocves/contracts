@@ -9,8 +9,8 @@
 </div>
 
 ### Requirements
-1. Node
-2. Ganache 
+1. Node (https://nodejs.org/en/download/)
+2. Ganache (https://www.trufflesuite.com/ganache)
 
 ### Run tests
     ganache-cli
